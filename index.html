@@ -14,7 +14,9 @@
     <link href="css/main.css" rel="stylesheet">
     <link href="css/index.css" rel="stylesheet">
     <link href="css/animate.css" rel="stylesheet">
-    <link href="css/swiper/swiper-bundle.min.css" rel="stylesheet">
+    <!-- Swiper จาก CDN เท่านั้น (ไม่โหลดซ้ำ local) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@12/swiper-bundle.min.css">
+    <style>html { scroll-padding-top: 70px; }</style>
     <style>
         .swiper {
             width: 100%;
@@ -161,7 +163,7 @@
     <!-- ================= ส่วนเฮโร่ ================= -->
     <header id="top" class="position-relative fade-in">
 
-        <video autoplay muted loop playsinline class="position-absolute w-100 h-100 object-fit-cover">
+        <video autoplay muted loop playsinline preload="none" class="position-absolute w-100 h-100 object-fit-cover">
             <source src="assets/video/header.mp4" type="video/mp4">
         </video>
 
@@ -208,7 +210,7 @@
                         </p>
                     </div>
                 </div>
-                <div class="scroll-down" style="padding-top: 5000px;">
+                <div class="scroll-down" style="padding-top: 50px;">
                     <a href="#greentravel" class="text-white">
                         <img src="assets/icon/arrow-down-circle-fill.svg" height="40">
                     </a>
@@ -270,16 +272,16 @@
 
                     <div class="nature-grid">
                         <div class="thumb thumb1">
-                            <img src="assets/highlight/greentravel/น้ำตกธาราวารินทร์/1.jpg">
+                            <img src="assets/highlight/greentravel/น้ำตกธาราวารินทร์/1.jpg" loading="lazy">
                         </div>
                         <div class="thumb thumb2">
-                            <img src="assets/highlight/greentravel/น้ำตกธาราวารินทร์/2.jpg">
+                            <img src="assets/highlight/greentravel/น้ำตกธาราวารินทร์/2.jpg" loading="lazy">
                         </div>
                         <div class="thumb thumb3">
-                            <img src="assets/highlight/greentravel/น้ำตกธาราวารินทร์/3.jpg">
+                            <img src="assets/highlight/greentravel/น้ำตกธาราวารินทร์/3.jpg" loading="lazy">
                         </div>
                         <div class="thumb thumb4">
-                            <img src="assets/highlight/greentravel/น้ำตกธาราวารินทร์/4.jpg">
+                            <img src="assets/highlight/greentravel/น้ำตกธาราวารินทร์/4.jpg" loading="lazy">
                         </div>
 
                         <div class="video-area">
@@ -329,17 +331,17 @@
 
                     <div class="nature-grid">
                         <div class="thumb thumb1">
-                            <img src="assets/highlight/greentravel/น้ำตกธารทิพย์/1.jpg"
+                            <img src="assets/highlight/greentravel/น้ำตกธารทิพย์/1.jpg" loading="lazy"
                                 style="border-top-left-radius: 10px;">
                         </div>
                         <div class="thumb thumb2">
-                            <img src="assets/highlight/greentravel/น้ำตกธารทิพย์/2.jpg">
+                            <img src="assets/highlight/greentravel/น้ำตกธารทิพย์/2.jpg" loading="lazy">
                         </div>
                         <div class="thumb thumb3">
-                            <img src="assets/highlight/greentravel/น้ำตกธารทิพย์/3.jpg">
+                            <img src="assets/highlight/greentravel/น้ำตกธารทิพย์/3.jpg" loading="lazy">
                         </div>
                         <div class="thumb thumb4">
-                            <img src="assets/highlight/greentravel/น้ำตกธารทิพย์/4.jpg"
+                            <img src="assets/highlight/greentravel/น้ำตกธารทิพย์/4.jpg" loading="lazy"
                                 style="border-bottom-left-radius: 10px;">
                         </div>
 
@@ -425,16 +427,16 @@
 
                     <div class="nature-grid">
                         <div class="thumb thumb1">
-                            <img src="assets/highlight/foodtravel/ร้านมีนาคาเฟ่/1.jpg">
+                            <img src="assets/highlight/foodtravel/ร้านมีนาคาเฟ่/1.jpg" loading="lazy">
                         </div>
                         <div class="thumb thumb2">
-                            <img src="assets/highlight/foodtravel/ร้านมีนาคาเฟ่/2.jpg">
+                            <img src="assets/highlight/foodtravel/ร้านมีนาคาเฟ่/2.jpg" loading="lazy">
                         </div>
                         <div class="thumb thumb3">
-                            <img src="assets/highlight/foodtravel/ร้านมีนาคาเฟ่/3.jpg">
+                            <img src="assets/highlight/foodtravel/ร้านมีนาคาเฟ่/3.jpg" loading="lazy">
                         </div>
                         <div class="thumb thumb4">
-                            <img src="assets/highlight/foodtravel/ร้านมีนาคาเฟ่/4.jpg">
+                            <img src="assets/highlight/foodtravel/ร้านมีนาคาเฟ่/4.jpg" loading="lazy">
                         </div>
 
                         <div class="video-area">
@@ -562,17 +564,17 @@
 
                     <div class="nature-grid">
                         <div class="thumb thumb1">
-                            <img src="assets/highlight/foodtravel/ข้าวมันไก่ศรีภา/1.jpg"
+                            <img src="assets/highlight/foodtravel/ข้าวมันไก่ศรีภา/1.jpg" loading="lazy"
                                 style="border-top-left-radius: 10px;">
                         </div>
                         <div class="thumb thumb2">
-                            <img src="assets/highlight/foodtravel/ข้าวมันไก่ศรีภา/2.jpg">
+                            <img src="assets/highlight/foodtravel/ข้าวมันไก่ศรีภา/2.jpg" loading="lazy">
                         </div>
                         <div class="thumb thumb3">
-                            <img src="assets/highlight/foodtravel/ข้าวมันไก่ศรีภา/3.jpg">
+                            <img src="assets/highlight/foodtravel/ข้าวมันไก่ศรีภา/3.jpg" loading="lazy">
                         </div>
                         <div class="thumb thumb4">
-                            <img src="assets/highlight/foodtravel/ข้าวมันไก่ศรีภา/4.jpg"
+                            <img src="assets/highlight/foodtravel/ข้าวมันไก่ศรีภา/4.jpg" loading="lazy"
                                 style="border-bottom-left-radius: 10px;">
                         </div>
                         <div class="video-area">
@@ -718,16 +720,16 @@
 
                     <div class="nature-grid">
                         <div class="thumb thumb1">
-                            <img src="assets/highlight/eventtravel/คุณตาบุญให้_ไผ่สร้างชีวิต/1.jpg">
+                            <img src="assets/highlight/eventtravel/คุณตาบุญให้_ไผ่สร้างชีวิต/1.jpg" loading="lazy">
                         </div>
                         <div class="thumb thumb2">
-                            <img src="assets/highlight/eventtravel/คุณตาบุญให้_ไผ่สร้างชีวิต/2.jpg">
+                            <img src="assets/highlight/eventtravel/คุณตาบุญให้_ไผ่สร้างชีวิต/2.jpg" loading="lazy">
                         </div>
                         <div class="thumb thumb3">
-                            <img src="assets/highlight/eventtravel/คุณตาบุญให้_ไผ่สร้างชีวิต/3.jpg">
+                            <img src="assets/highlight/eventtravel/คุณตาบุญให้_ไผ่สร้างชีวิต/3.jpg" loading="lazy">
                         </div>
                         <div class="thumb thumb4">
-                            <img src="assets/highlight/eventtravel/คุณตาบุญให้_ไผ่สร้างชีวิต/4.jpg">
+                            <img src="assets/highlight/eventtravel/คุณตาบุญให้_ไผ่สร้างชีวิต/4.jpg" loading="lazy">
                         </div>
 
                         <div class="video-area">
@@ -779,17 +781,17 @@
 
                     <div class="nature-grid">
                         <div class="thumb thumb1">
-                            <img src="assets/highlight/eventtravel/ลำไยคริสตัลสวนฝันวรินทร/1.jpg"
+                            <img src="assets/highlight/eventtravel/ลำไยคริสตัลสวนฝันวรินทร/1.jpg" loading="lazy"
                                 style="border-top-left-radius: 10px;">
                         </div>
                         <div class="thumb thumb2">
-                            <img src="assets/highlight/eventtravel/ลำไยคริสตัลสวนฝันวรินทร/2.jpg">
+                            <img src="assets/highlight/eventtravel/ลำไยคริสตัลสวนฝันวรินทร/2.jpg" loading="lazy">
                         </div>
                         <div class="thumb thumb3">
-                            <img src="assets/highlight/eventtravel/ลำไยคริสตัลสวนฝันวรินทร/3.jpg">
+                            <img src="assets/highlight/eventtravel/ลำไยคริสตัลสวนฝันวรินทร/3.jpg" loading="lazy">
                         </div>
                         <div class="thumb thumb4">
-                            <img src="assets/highlight/eventtravel/ลำไยคริสตัลสวนฝันวรินทร/4.jpg"
+                            <img src="assets/highlight/eventtravel/ลำไยคริสตัลสวนฝันวรินทร/4.jpg" loading="lazy"
                                 style="border-bottom-left-radius: 10px;">
                         </div>
 
