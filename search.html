@@ -189,7 +189,6 @@
     </footer>
 
 
-    <!-- ================= SCRIPTS ================= -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
@@ -206,96 +205,88 @@
         let currentPage = 1;
         const itemsPerPage = 6;
 
-
         /* =====================================================
-           UTIL FUNCTIONS (สำคัญมาก ห้ามลบ)
+           CACHE — โหลดข้อมูลครั้งเดียว แล้วเก็บไว้ใน memory
+           แก้ปัญหา: เดิมทำ ~24 fetch ทุกครั้งที่พิมพ์ค้นหา
         ===================================================== */
 
+        const _cache = {};
+
         async function readText(path) {
+            if (_cache[path] !== undefined) return _cache[path];
             try {
-                let r = await fetch(path);
-                if (r.status === 200)
-                    return (await r.text()).trim();
-            } catch (e) { }
-            return "";
+                const r = await fetch(path);
+                _cache[path] = r.ok ? (await r.text()).trim() : "";
+            } catch (e) {
+                _cache[path] = "";
+            }
+            return _cache[path];
         }
 
         async function getThumbnail(id) {
-            const exts = ["jpg", "png", "webp"];
+            const cacheKey = `__thumb_${id}`;
+            if (_cache[cacheKey]) return _cache[cacheKey];
 
+            const exts = ["jpg", "png", "webp"];
             for (let ext of exts) {
-                let url = `assets/id/${id}/thumbnail.${ext}`;
+                const url = `assets/id/${id}/thumbnail.${ext}`;
                 try {
-                    let r = await fetch(url);
-                    if (r.status === 200)
+                    const r = await fetch(url, { method: "HEAD" });
+                    if (r.ok) {
+                        _cache[cacheKey] = url;
                         return url;
+                    }
                 } catch (e) { }
             }
-
-            return "assets/no_image.png";
+            _cache[cacheKey] = "assets/no_image.png";
+            return _cache[cacheKey];
         }
 
         async function getTags(id) {
             const raw = await readText(`assets/id/${id}/tag.txt`);
             if (!raw) return [];
-
-            let tags = [];
-
-            raw.split("\n").forEach(line => {
-                let match = line.match(/(.*)\[(true|false)\]/);
-                if (match && match[2] === "true") {
-                    tags.push(match[1].trim());
-                }
-            });
-
-            return tags;
+            return raw.split("\n")
+                .map(line => line.match(/(.*)\[(true|false)\]/))
+                .filter(m => m && m[2] === "true")
+                .map(m => m[1].trim());
         }
-
-        /* ===== MINI DETAIL ===== */
 
         async function getMiniDetail(id) {
-
-            const raw =
-                await readText(`assets/id/${id}/mini-detail.txt`);
-
-            if (!raw) return "";
-
-            return raw.replace(/\n/g, "<br>");
+            const raw = await readText(`assets/id/${id}/mini-detail.txt`);
+            return raw ? raw.replace(/\n/g, "<br>") : "";
         }
+
+        /* โหลดข้อมูลทั้งหมดพร้อมกันตั้งแต่ต้น (parallel) */
+        let allItems = null;
+
+        async function loadAllItems() {
+            if (allItems) return allItems;
+            allItems = await Promise.all(data.map(async x => {
+                const name = await readText(`assets/id/${x.id}/name.txt`);
+                if (!name) return null;
+                const [tags, thumb, mini] = await Promise.all([
+                    getTags(x.id),
+                    getThumbnail(x.id),
+                    getMiniDetail(x.id),
+                ]);
+                return { id: x.id, name, tags, thumb, mini };
+            }));
+            allItems = allItems.filter(x => x !== null);
+            return allItems;
+        }
+
         /* =====================================================
-           FILTER DATA
+           FILTER DATA (ทำงานบน allItems ที่แคชไว้แล้ว)
         ===================================================== */
 
         async function getFilteredData() {
-
-            const keyword =
-                document.getElementById("filter").value.toLowerCase();
-
-            const results = await Promise.all(
-                data.map(async x => {
-
-                    const name =
-                        await readText(`assets/id/${x.id}/name.txt`);
-                    if (!name) return null;
-
-                    const tags = await getTags(x.id);
-
-                    if (!name.toLowerCase().includes(keyword))
-                        return null;
-
-                    if (activeTags.length > 0) {
-                        if (!tags.some(t => activeTags.includes(t)))
-                            return null;
-                    }
-
-                    const thumb = await getThumbnail(x.id);
-                    const mini = await getMiniDetail(x.id);
-
-                    return { id: x.id, name, tags, thumb, mini };
-                })
-            );
-
-            return results.filter(x => x !== null);
+            const items = await loadAllItems();
+            const keyword = document.getElementById("filter").value.toLowerCase();
+            return items.filter(item => {
+                if (!item.name.toLowerCase().includes(keyword)) return false;
+                if (activeTags.length > 0 && !item.tags.some(t => activeTags.includes(t))) return false;
+                return true;
+            });
         }
 
 
@@ -304,49 +295,35 @@
         ===================================================== */
 
         async function render() {
+            document.getElementById("list").innerHTML =
+                `<div class="col-12 text-center py-5 text-muted">กำลังโหลด...</div>`;
 
             const filtered = await getFilteredData();
-            const totalPages =
-                Math.ceil(filtered.length / itemsPerPage);
+            const totalPages = Math.ceil(filtered.length / itemsPerPage);
+            if (currentPage > totalPages) currentPage = 1;
 
-            if (currentPage > totalPages)
-                currentPage = 1;
-
-            const start =
-                (currentPage - 1) * itemsPerPage;
-
-            const paginated =
-                filtered.slice(start, start + itemsPerPage);
+            const start = (currentPage - 1) * itemsPerPage;
+            const paginated = filtered.slice(start, start + itemsPerPage);
 
             const html = paginated.map(item => {
-
-                const tagHtml =
-                    item.tags.map(t =>
-                        `<span class="badge bg-warning text-dark me-1">${t}</span>`
-                    ).join("");
-
+                const tagHtml = item.tags.map(t =>
+                    `<span class="badge bg-warning text-dark me-1">${t}</span>`
+                ).join("");
                 return `
-            <div class="col-md-4 fade-in">
-                <div class="card h-100 shadow-sm" style="border-style: solid; border-color: var(--primary);">
-                    <img src="${item.thumb}" class="card-img-top">
-                    <div class="card-body">
-                        ${tagHtml}
-					<div class="card-body d-flex flex-column">
-                        <h5 class="mt-2">${item.name}</h5>
-                        <p class="mini-detail" style="max-width: 75ch;">${item.mini}</p>
-                        <a href="detail.html?id=${item.id}"
-                           class="btn btn-detail mt-auto">
-                           ดูรายละเอียด
-                        </a>
-</div>
+                <div class="col-md-4 fade-in">
+                    <div class="card h-100 shadow-sm" style="border-style:solid;border-color:var(--primary);">
+                        <img src="${item.thumb}" class="card-img-top" loading="lazy">
+                        <div class="card-body d-flex flex-column">
+                            ${tagHtml}
+                            <h5 class="mt-2">${item.name}</h5>
+                            <p class="mini-detail" style="max-width:75ch;">${item.mini}</p>
+                            <a href="detail.html?id=${item.id}" class="btn btn-detail mt-auto">ดูรายละเอียด</a>
+                        </div>
                     </div>
-                </div>
-            </div>
-        `;
+                </div>`;
             }).join("");
 
-            document.getElementById("list").innerHTML = html;
-
+            document.getElementById("list").innerHTML = html || `<p class="text-muted">ไม่พบสถานที่</p>`;
             renderPagination(totalPages);
         }
 
@@ -356,42 +333,20 @@
         ===================================================== */
 
         function renderPagination(totalPages) {
-
             if (totalPages <= 1) {
                 document.getElementById("pagination").innerHTML = "";
                 return;
             }
-
             let html = `<ul class="pagination">`;
-
-            html += `
-        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="changePage(${currentPage - 1});return false;">
-               หน้าก่อน
-            </a>
-        </li>
-    `;
-
+            html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changePage(${currentPage - 1});return false;">หน้าก่อน</a></li>`;
             for (let i = 1; i <= totalPages; i++) {
-                html += `
-            <li class="page-item ${currentPage === i ? 'active' : ''}">
-                <a class="page-link" href="#" onclick="changePage(${i});return false;">
-                   ${i}
-                </a>
-            </li>
-        `;
+                html += `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${i});return false;">${i}</a></li>`;
             }
-
-            html += `
-        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="changePage(${currentPage + 1});return false;">
-               หน้าถัดไป
-            </a>
-        </li>
-    `;
-
+            html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changePage(${currentPage + 1});return false;">หน้าถัดไป</a></li>`;
             html += `</ul>`;
-
             document.getElementById("pagination").innerHTML = html;
         }
 
@@ -404,33 +359,33 @@
             if (page < 1) return;
             currentPage = page;
             render();
-            document.getElementById("location")
-                .scrollIntoView({ behavior: "smooth" });
+            document.getElementById("location").scrollIntoView({ behavior: "smooth" });
         }
 
 
         /* =====================================================
-           EVENTS
+           EVENTS — debounce ช่องค้นหาเพื่อลด render ถี่เกินไป
         ===================================================== */
 
+        let _searchTimer;
         document.getElementById("filter").oninput = () => {
-            currentPage = 1;
-            render();
+            clearTimeout(_searchTimer);
+            _searchTimer = setTimeout(() => {
+                currentPage = 1;
+                render();
+            }, 300);
         };
 
         document.querySelectorAll(".tag-btn").forEach(btn => {
             btn.onclick = () => {
                 const tag = btn.dataset.tag;
-
                 if (activeTags.includes(tag)) {
-                    activeTags =
-                        activeTags.filter(t => t !== tag);
+                    activeTags = activeTags.filter(t => t !== tag);
                     btn.classList.remove("active");
                 } else {
                     activeTags.push(tag);
                     btn.classList.add("active");
                 }
-
                 currentPage = 1;
                 render();
             };
@@ -438,22 +393,8 @@
 
 
         /* =====================================================
-           INIT
-        ===================================================== */
-
-        render();
-
-
-        /* =====================================================
            LIGHTBOX
         ===================================================== */
-
-        document.querySelectorAll(".gallery-img").forEach(img => {
-            img.addEventListener("click", () => {
-                document.getElementById("lightbox-img").src = img.src;
-                document.getElementById("lightbox").style.display = "flex";
-            });
-        });
 
         document.getElementById("lightbox").onclick = function () {
             this.style.display = "none";
@@ -465,65 +406,36 @@
         ===================================================== */
 
         function splitTextPreserveHTML(element) {
-
-            const walk = document.createTreeWalker(
-                element,
-                NodeFilter.SHOW_TEXT,
-                null,
-                false
-            );
-
+            const walk = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
             let nodes = [];
-
-            while (walk.nextNode()) {
-                nodes.push(walk.currentNode);
-            }
-
+            while (walk.nextNode()) nodes.push(walk.currentNode);
             nodes.forEach(node => {
-                const text = node.nodeValue;
                 const frag = document.createDocumentFragment();
-
-                text.split("").forEach((char, i) => {
+                node.nodeValue.split("").forEach((char, i) => {
                     const span = document.createElement("span");
                     span.className = "char";
                     span.innerHTML = char === " " ? "&nbsp;" : char;
                     span.style.transitionDelay = (i * 0.04) + "s";
                     frag.appendChild(span);
                 });
-
                 node.parentNode.replaceChild(frag, node);
             });
         }
 
-        document.querySelectorAll(".animate-text").forEach(el => {
-            splitTextPreserveHTML(el);
-        });
-
-
-        /* =====================================================
-           OBSERVER ANIMATION
-        ===================================================== */
+        document.querySelectorAll(".animate-text").forEach(el => splitTextPreserveHTML(el));
 
         const observer = new IntersectionObserver(entries => {
             entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add("show");
-                } else {
-                    entry.target.classList.remove("show");
-                }
+                if (entry.isIntersecting) entry.target.classList.add("show");
+                else entry.target.classList.remove("show");
             });
-        }, {
-            threshold: 0.3
-        });
+        }, { threshold: 0.3 });
 
-        document
-            .querySelectorAll(".animate-bottom-scrolling,.animate-text")
-            .forEach(el => {
-                observer.observe(el);
-            });
+        document.querySelectorAll(".animate-bottom-scrolling,.animate-text").forEach(el => observer.observe(el));
+
 
         /* =====================================================
-           PROMOTE SLIDER PRO VERSION
+           PROMOTE SLIDER
         ===================================================== */
 
         const promotePlaces = [
@@ -537,123 +449,72 @@
 
         let promoteIndex = 0;
         let autoSlideInterval;
-        let startX = 0;
-        let endX = 0;
+        let startX = 0, endX = 0;
 
         async function loadPromote(index) {
-
             const place = promotePlaces[index];
-
-            const textPath =
-                `assets/gallery/promote/${place}/รายละเอียด.txt`;
-
-            const imagePath =
-                `assets/gallery/promote/${place}/ภาพ.jpg`;
-
+            const textPath = `assets/gallery/promote/${place}/รายละเอียด.txt`;
+            const imagePath = `assets/gallery/promote/${place}/ภาพ.jpg`;
             try {
-
-                const res = await fetch(textPath);
-                const raw = await res.text();
-
+                const raw = await readText(textPath);
                 const lines = raw.split("\n");
-
                 const title = lines[0];
-                const description =
-                    lines.slice(1).join("<br>");
+                const description = lines.slice(1).join("<br>");
 
                 const image = document.getElementById("promote-image");
                 const titleEl = document.getElementById("promote-title");
                 const descEl = document.getElementById("promote-description");
 
-                /* reset animation */
                 image.classList.remove("active");
                 titleEl.classList.remove("show");
                 descEl.classList.remove("show");
-
                 image.classList.add("fade-slide");
 
                 setTimeout(() => {
-
                     image.src = imagePath;
                     titleEl.innerText = title;
                     descEl.innerHTML = description;
-
                     image.classList.remove("fade-slide");
-
-                    /* trigger animation */
                     image.classList.add("active");
-
-                    setTimeout(() => {
-                        titleEl.classList.add("show");
-                    }, 200);
-
-                    setTimeout(() => {
-                        descEl.classList.add("show");
-                    }, 350);
-
+                    setTimeout(() => titleEl.classList.add("show"), 200);
+                    setTimeout(() => descEl.classList.add("show"), 350);
                 }, 300);
 
                 updateDots();
-
             } catch (e) {
                 console.log("โหลด promote ไม่สำเร็จ", e);
             }
         }
 
         function nextSlide() {
-            promoteIndex++;
-            if (promoteIndex >= promotePlaces.length)
-                promoteIndex = 0;
-
+            promoteIndex = (promoteIndex + 1) % promotePlaces.length;
             loadPromote(promoteIndex);
         }
 
         function prevSlide() {
-            promoteIndex--;
-            if (promoteIndex < 0)
-                promoteIndex = promotePlaces.length - 1;
-
+            promoteIndex = (promoteIndex - 1 + promotePlaces.length) % promotePlaces.length;
             loadPromote(promoteIndex);
         }
 
-        /* ============ DOTS ============ */
-
         function createDots() {
-
-            const container =
-                document.getElementById("promote-dots");
-
+            const container = document.getElementById("promote-dots");
             container.innerHTML = "";
-
             promotePlaces.forEach((_, i) => {
                 const dot = document.createElement("span");
-                dot.onclick = () => {
-                    promoteIndex = i;
-                    loadPromote(promoteIndex);
-                    resetAutoSlide();
-                };
+                dot.onclick = () => { promoteIndex = i; loadPromote(i); resetAutoSlide(); };
                 container.appendChild(dot);
             });
-
             updateDots();
         }
 
         function updateDots() {
-
-            const dots =
-                document.querySelectorAll("#promote-dots span");
-
-            dots.forEach((dot, i) => {
+            document.querySelectorAll("#promote-dots span").forEach((dot, i) => {
                 dot.classList.toggle("active", i === promoteIndex);
             });
         }
 
-        /* ============ AUTO SLIDE ============ */
-
         function startAutoSlide() {
-            autoSlideInterval = setInterval(() => {
-                nextSlide();
-            }, 5000);
+            autoSlideInterval = setInterval(nextSlide, 5000);
         }
 
         function resetAutoSlide() {
@@ -661,33 +522,25 @@
             startAutoSlide();
         }
 
-        /* ============ SWIPE MOBILE ============ */
+        const promoteSection = document.getElementById("promote");
+        if (promoteSection) {
+            promoteSection.addEventListener("touchstart", e => { startX = e.touches[0].clientX; });
+            promoteSection.addEventListener("touchend", e => {
+                endX = e.changedTouches[0].clientX;
+                if (startX - endX > 50) { nextSlide(); resetAutoSlide(); }
+                if (endX - startX > 50) { prevSlide(); resetAutoSlide(); }
+            });
+        }
 
-        const promoteSection =
-            document.getElementById("promote");
+        /* =====================================================
+           INIT
+        ===================================================== */
 
-        promoteSection.addEventListener("touchstart", e => {
-            startX = e.touches[0].clientX;
-        });
-
-        promoteSection.addEventListener("touchend", e => {
-            endX = e.changedTouches[0].clientX;
-
-            if (startX - endX > 50) {
-                nextSlide();
-                resetAutoSlide();
-            }
-
-            if (endX - startX > 50) {
-                prevSlide();
-                resetAutoSlide();
-            }
-        });
-        /* ============ INIT ============ */
-
+        render();
         createDots();
         loadPromote(promoteIndex);
         startAutoSlide();
+
     </script>
 
 </body>
